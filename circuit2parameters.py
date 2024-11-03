@@ -109,10 +109,40 @@ def get_z_matrix(component_values : dict, nodes : np.ndarray) -> np.ndarray:
         No_In_nodes = [n-1 for n in No_In_nodes[1:]]
     
     return z_matrix
+
+
+def paralel_branch_finder(components_nodes):
+
+    for component_nodes in components_nodes:
+        if components_nodes.count(component_nodes) > 1:
+            paralel_components = [i for i, sublista in enumerate(components_nodes) if sublista == nodes]
+            break
+            
+    return paralel_components
+        
+def serial_branch_finder(components_nodes):
+    
+    nodes_frecuency = {}
+    for component_nodes in components_nodes:
+        for node in component_nodes:
+            if node in nodes_frecuency:
+                nodes_frecuency[node] += 1
+            else:
+                nodes_frecuency[node] = 1
+    
+    nodos_with_only_2_components = [num for num, count in nodes_frecuency.items() if count == 2]
+    return nodes_frecuency
   
 if __name__ == "__main__":   
     
     np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
+
+    components_nodes = [[0,1],[1,2],[0],[0,3],[2,3],[2,4],[3,4],[3,4],[4]]
+    input_nodes = [1,4]
+    
+    for compenent_nodes in components_nodes:
+        compenent_nodes.sort()
+        
     
     component_values = {
         "Z1": 10 + 0.001j,
@@ -128,6 +158,7 @@ if __name__ == "__main__":
     #nodes = np.array([["Z1","Z2","In_1"],["Z2","Z3","Z4"],["Z4","Z1","Z5","In_2"],["Z3","Z5","Z6"]])
     #nodes = np.array([["Z1","Z2","In_1"],["Z2","Z3","Z4"],["Z4","Z1","Z5","In_2"]])
     #nodes = np.array([["Z2","In_1"],["Z2","Z3","Z4"],["Z4","Z5","In_2"]])       
+
     
     z_matrix = get_z_matrix(component_values, nodes)
     print(z_matrix)
