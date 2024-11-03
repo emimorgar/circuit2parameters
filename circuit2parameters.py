@@ -1,6 +1,6 @@
 import numpy as np
 
-def get_circuit_matrix(component_value : dict, nodes : np.ndarray) -> np.ndarray:
+def get_circuit_matrix(components_values : list, nodes : np.ndarray) -> np.ndarray:
     """This function calculate the circuit matriz based of nodes
     
     Args:
@@ -21,8 +21,10 @@ def get_circuit_matrix(component_value : dict, nodes : np.ndarray) -> np.ndarray
             if i == j:
                 acc = complex(0,0)
                 for component_name in nodes[j]:
-                    if not ("In_" in component_name):
-                        acc += 1/component_value[component_name]
+                    
+                    if not isinstance(component_name, str):
+                        acc += 1/components_values[component_name]
+
                 circuit_matrix[j,i] = acc
     
     #This section search the component pair in other nodes 
@@ -31,15 +33,15 @@ def get_circuit_matrix(component_value : dict, nodes : np.ndarray) -> np.ndarray
     for j, node in enumerate(nodes):
         for component_name in node:
 
-            if "In_" in component_name:
+            if isinstance(component_name, str):
                 In_nodes.append(j)
                 continue
 
             node_num = finder(j, nodes, component_name)
 
             if node_num > -1:
-                circuit_matrix[j, node_num] = -1/component_value[component_name]
-            
+                circuit_matrix[j, node_num] = -1/components_values[component_name]
+    
     return circuit_matrix, In_nodes
 
 def finder(row : int, nodes : np.ndarray,  component_name : str) -> int:
@@ -88,7 +90,7 @@ def matrix_reduction(circuit_matrix : np.ndarray, node : int) -> np.ndarray:
     
     return new_matrix[1:]
 
-def get_z_matrix(component_values : dict, nodes : np.ndarray) -> np.ndarray:
+def get_z_matrix(components_values : list, nodes : np.ndarray) -> np.ndarray:
     """
     Calculate the Z matrix for a circuit.
 
@@ -99,7 +101,7 @@ def get_z_matrix(component_values : dict, nodes : np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: The Z matrix.
     """
-    z_matrix, In_nodes = get_circuit_matrix(component_values, nodes)
+    z_matrix, In_nodes = get_circuit_matrix(components_values, nodes)
     Total_nodes =  set([x for x in range(len(z_matrix))])
     No_In_nodes = list(Total_nodes - set(In_nodes))
   
@@ -112,12 +114,17 @@ def get_z_matrix(component_values : dict, nodes : np.ndarray) -> np.ndarray:
 
 
 def paralel_branch_finder(components_nodes):
+    components_frecuency = {}
+    
+    for i, component_nodes in enumerate(components_nodes):
+        component_tuple = tuple(component_nodes)
+        if component_tuple in components_frecuency:
+            components_frecuency[component_tuple].append(i)
+        else:
+            components_frecuency[component_tuple] = [i]
 
-    for component_nodes in components_nodes:
-        if components_nodes.count(component_nodes) > 1:
-            paralel_components = [i for i, sublista in enumerate(components_nodes) if sublista == nodes]
-            break
-            
+    paralel_components = [indices for indices in components_frecuency.values() if len(indices) > 1]
+    
     return paralel_components
         
 def serial_branch_finder(components_nodes):
@@ -130,8 +137,10 @@ def serial_branch_finder(components_nodes):
             else:
                 nodes_frecuency[node] = 1
     
-    nodos_with_only_2_components = [num for num, count in nodes_frecuency.items() if count == 2]
-    return nodes_frecuency
+    serial_nodes = [num for num, count in nodes_frecuency.items() if count == 2]
+
+    return serial_nodes
+
   
 if __name__ == "__main__":   
     
@@ -144,21 +153,21 @@ if __name__ == "__main__":
         compenent_nodes.sort()
         
     
-    component_values = {
-        "Z1": 10 + 0.001j,
-        "Z2": 10000,
-        "Z3": .01j,
-        "Z4": 1000,
-        "Z5": 0.1,
-        "Z6" : -0.1j
-    }
+    components_values = [
+        0.001j,
+        10000,
+        -.01j,
+        1000,
+        0.1,
+        -0.1j
+    ]
 
     #Examples of circuits
-    nodes = np.array([["Z1","Z2","In_1"],["Z2","Z3","Z4"],["Z4","Z1","Z5","In_2"],["Z3","Z5","Z6","In_3"]])
+    nodes = np.array([[0,1,"In_1"],[1,2,3],[3,0,4],[2,4,5,"In_3"]])
     #nodes = np.array([["Z1","Z2","In_1"],["Z2","Z3","Z4"],["Z4","Z1","Z5","In_2"],["Z3","Z5","Z6"]])
     #nodes = np.array([["Z1","Z2","In_1"],["Z2","Z3","Z4"],["Z4","Z1","Z5","In_2"]])
     #nodes = np.array([["Z2","In_1"],["Z2","Z3","Z4"],["Z4","Z5","In_2"]])       
 
     
-    z_matrix = get_z_matrix(component_values, nodes)
+    z_matrix = get_z_matrix(components_values, nodes)
     print(z_matrix)
