@@ -139,19 +139,90 @@ def serial_branch_finder(components_nodes):
     
     serial_nodes = [num for num, count in nodes_frecuency.items() if count == 2]
 
-    return serial_nodes
+    serial_components_set = []
+    for serial_node in serial_nodes:
+        serial_components = []
+        for component, component_nodes in enumerate(components_nodes):
+            for node in component_nodes:
+                if node == serial_node:
+                    serial_components.append(component)
+        serial_components_set.append(serial_components)
+    
+    return serial_components_set
 
+def sum(sum_type, components_nodes, components_values, serial_paralel_components_set):
+    
+    components_to_delate = []
+    for components in serial_paralel_components_set:
+        
+        #Suma paralela o serial
+        sum_value = 0
+        for component in components:
+            print(component)
+            if sum_type == "paralel":
+                sum_value += 1/components_values[component]
+            elif sum_type == "serial":
+                sum_value += components_values[component]
+            
+        #Asignacion de la nueva rama
+        components_values[component] = sum_value
+        
+        #Eliminacion de los componentes 
+        components_to_delate.extend(components[:-1])
+        
+    components_values = [component for i, component in enumerate(components_values) if i not in components_to_delate]
+    components_nodes = [component for i, component in enumerate(components_nodes) if i not in components_to_delate]
+        
+    return components_nodes, components_values
+
+def equivalent_circuit(components_nodes, components_values):
+    
+    paralel_components_set = paralel_branch_finder(components_nodes)
+    components_nodes, components_values = sum("paralel", components_nodes, components_values, paralel_components_set)
+    
+    serial_nodes_set = serial_branch_finder(components_nodes) 
+    components_nodes, components_values = sum("serial", components_nodes, components_values, serial_nodes_set)
+    
+    while (len(paralel_components_set) == 0) and (len(serial_nodes_set) == 0):
+        
+        paralel_components_set = paralel_branch_finder(components_nodes)
+        components_nodes, components_values = sum("paralel", components_nodes, components_values, paralel_components_set)
+        
+        serial_nodes_set = serial_branch_finder(components_nodes) 
+        components_nodes, components_values = sum("serial", components_nodes, components_values, serial_nodes_set)
+    
+    return components_nodes, components_values
+    
+    
   
 if __name__ == "__main__":   
     
     np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 
-    components_nodes = [[0,1],[1,2],[0],[0,3],[2,3],[2,4],[3,4],[3,4],[4]]
     input_nodes = [1,4]
+
+    components_values = [
+        0.001j,
+        10000,
+        -.01j,
+        1000,
+        0.1,
+        -0.1j,
+        9800,
+        10j,
+        1500,
+        150
+    ]
     
-    for compenent_nodes in components_nodes:
-        compenent_nodes.sort()
-        
+    components_nodes = [[0,1],[1,2],[0],[0,3],[2,3],[2,4],[3,4],[3,4],[4],[4]]
+    
+    for component_nodes in components_nodes:
+        component_nodes.sort()
+    
+    components_nodes, components_values = equivalent_circuit(components_nodes, components_values)
+    
+    print(components_nodes)
+    print(components_values)
     
     components_values = [
         0.001j,
