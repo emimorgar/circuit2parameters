@@ -1,18 +1,20 @@
 import numpy as np
 
 class Circuit:
-    def __init__(self, components_values, components_nodes, nodes):
+    
+    def __init__(self, components_values, components_nodes, input_nodes):
         self.components_values = components_values
         self.components_nodes = [sorted(node) for node in components_nodes]
-        self.nodes = nodes
+        self.input_nodes = input_nodes
 
-    def _finder(self, row, component_name):
-        for i, node in enumerate(self.nodes):
+    def _finder(self, row, component_name, nodes):
+        for i, node in enumerate(nodes):
             if (i != row) and (component_name in node):
                 return i
         return -1
 
     def _matrix_reduction(self, circuit_matrix, node):
+        print(circuit_matrix)
         y, x = circuit_matrix.shape
         pivote_value = circuit_matrix[node, x - node]
         new_matrix = np.zeros((x - 1), dtype=complex)
@@ -46,10 +48,11 @@ class Circuit:
         for component_nodes in self.components_nodes:
             for node in component_nodes:
                 nodes_frequency[node] = nodes_frequency.get(node, 0) + 1
-
+        #todos los nodos en serie
         serial_nodes = [num for num, count in nodes_frequency.items() if count == 2]
+        #elimina los nodos de entrada
+        serial_nodes = [i for i in serial_nodes if i not in self.input_nodes]
         serial_components_set = []
-
         for serial_node in serial_nodes:
             serial_components = []
             for component, component_nodes in enumerate(self.components_nodes):
@@ -96,7 +99,9 @@ class Circuit:
         self.components_nodes = [n for i, n in enumerate(self.components_nodes) if i not in components_to_delete]
 
     def get_circuit_matrix(self):
-        circuit_matrix_len = self.nodes.shape[0]
+        nodes = self.components_to_node()
+        #print(nodes)
+        circuit_matrix_len = len(nodes)
         circuit_matrix = np.zeros((circuit_matrix_len, circuit_matrix_len), dtype=complex)
         in_nodes = []
         
@@ -104,17 +109,17 @@ class Circuit:
             for i in range(circuit_matrix_len):
                 if i == j:
                     acc = complex(0, 0)
-                    for component_name in self.nodes[j]:
+                    for component_name in nodes[j]:
                         if not isinstance(component_name, str):
                             acc += 1 / self.components_values[component_name]
                     circuit_matrix[j, i] = acc
 
-        for j, node in enumerate(self.nodes):
+        for j, node in enumerate(nodes):
             for component_name in node:
                 if isinstance(component_name, str):
                     in_nodes.append(j)
                     continue
-                node_num = self._finder(j, component_name)
+                node_num = self._finder(j, component_name, nodes)
                 if node_num > -1:
                     circuit_matrix[j, node_num] = -1 / self.components_values[component_name]
 
@@ -147,12 +152,26 @@ class Circuit:
                 serial_components_set = self._serial_branch_finder()
 
         return self.components_nodes, self.components_values
+    
+    def components_to_node(self):
 
+        nodes = []
+        for node_num in range(len(self.components_nodes)+1):
+            node  = [component_num for component_num, component in enumerate(self.components_nodes) if node_num in component]
+            if node_num in self.input_nodes:
+                node.append(f"In_{node_num}")
+            nodes.append(node)
+        nodes = [node for node in nodes if node]
+
+        return nodes
+    
+        
+        
 # Ejemplo de uso
 if __name__ == "__main__":
     np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
     
-    input_nodes = [1,4]
+    input_nodes = [5,0]
     components_values = [
         5000j,
         10000,
@@ -174,16 +193,17 @@ if __name__ == "__main__":
     #components_values = [10,10,10,10,10,10,10,10,10]
     #components_nodes = [[0,6],[6,2],[1,5],[4,2],[2,0],[3,5],[6,3],[1,4],[4,3]]
     components_nodes = [[0,1],[1,2],[0],[0,3],[2,3],[2,4],[3,4],[3,4],[4],[4],[4],[4,5],[5,6],[6,7],[7,4],[7]]
-    nodes = np.array([[0,1,"In_1"],[1,2,3],[3,0,4],[2,4,5,"In_3"]])
+    
 
-    circuit = Circuit(components_values, components_nodes, nodes)
+    circuit = Circuit(components_values, components_nodes, input_nodes)
     print("Component Nodes (Original):", circuit.components_nodes)
     print("Component Values (Original):", circuit.components_values)
     
-    components_nodes, components_values = circuit.equivalent_circuit()
-    print("Component Nodes (Equivalent):", circuit.components_nodes)
-    print("Component Values (Equivalent):", circuit.components_values)
-        
+    #components_nodes_, components_values_ = circuit.equivalent_circuit()
+    #print("Component Nodes (Equivalent):", components_nodes_)
+    #print("Component Values (Equivalent):", components_values_)
+    
+    
     z_matrix = circuit.get_z_matrix()
     print("Matriz Z:", z_matrix)
 
