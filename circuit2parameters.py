@@ -221,13 +221,13 @@ def equivalent_circuit(components_nodes, components_values):
     while paralel_components_set or serial_components_set:
         
         if paralel_components_set:
-            print(serial_components_set, paralel_components_set)
+            #print(serial_components_set, paralel_components_set)
             components_nodes, components_values = paralel_sum(components_nodes, components_values, paralel_components_set)
             paralel_components_set = paralel_branch_finder(components_nodes)
             serial_components_set = serial_branch_finder(components_nodes)
         
         if serial_components_set:
-            print(serial_components_set, paralel_components_set)
+            #print(serial_components_set, paralel_components_set)
             components_nodes, components_values = serial_sum(components_nodes, components_values, serial_components_set)
             paralel_components_set = paralel_branch_finder(components_nodes)
             serial_components_set = serial_branch_finder(components_nodes)
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 
     input_nodes = [1,4]
-    components_values = [10,10,10,10,10,10,10,10,10]
+    
     components_values = [
         5000j,
         10000,
@@ -260,12 +260,16 @@ if __name__ == "__main__":
         10000,
         15
     ]
-    
+    components_values = [10,10,10,10,10,10,10,10,10]
     components_nodes = [[0,6],[6,2],[1,5],[4,2],[2,0],[3,5],[6,3],[1,4],[4,3]]
-    components_nodes = [[0,1],[1,2],[0],[0,3],[2,3],[2,4],[3,4],[3,4],[4],[4],[4],[4,5],[5,6],[6,7],[7,4],[7]]
+    #components_nodes = [[0,1],[1,2],[0],[0,3],[2,3],[2,4],[3,4],[3,4],[4],[4],[4],[4,5],[5,6],[6,7],[7,4],[7]]
 
     for component_nodes in components_nodes:
         component_nodes.sort()
+
+    print(components_nodes)
+    print(components_values)
+    print("\n")
     
     components_nodes, components_values = equivalent_circuit(components_nodes, components_values)
     
@@ -289,4 +293,4 @@ if __name__ == "__main__":
 
     
     z_matrix = get_z_matrix(components_values, nodes)
-    print(z_matrix)
+    #print(z_matrix)
