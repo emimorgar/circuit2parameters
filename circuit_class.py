@@ -7,14 +7,32 @@ class Circuit:
         self.components_nodes = [sorted(node) for node in components_nodes]
         self.input_nodes = input_nodes
 
-    def _finder(self, row, component_name, nodes):
+    def __finder(self, row, component_name, nodes) -> int:
+        """This function find the component pair and returns the node number where it was allocated.
+
+        Args:
+            row (int): Current row of circuit matrix .
+            nodes (np.ndarray): nodes matrix.
+            component_name (str): component name want to find it.
+
+        Returns:
+            int: Node number where component pair was found, -1 if didn't find it.
+        """
         for i, node in enumerate(nodes):
             if (i != row) and (component_name in node):
                 return i
         return -1
 
-    def _matrix_reduction(self, circuit_matrix, node):
-        print(circuit_matrix)
+    def __matrix_reduction(self, circuit_matrix, node) -> np.ndarray:
+        """Reduce a circuit matrix by eliminating the row and column corresponding to the given node.
+
+        Args:
+            circuit_matrix (np.ndarray): The original circuit matrix.
+            node (int): The node to be used as a pivot.
+
+        Returns:
+            np.ndarray: The reduced matrix.
+        """
         y, x = circuit_matrix.shape
         pivote_value = circuit_matrix[node, x - node]
         new_matrix = np.zeros((x - 1), dtype=complex)
@@ -31,7 +49,7 @@ class Circuit:
 
         return new_matrix[1:]
 
-    def _paralel_branch_finder(self):
+    def __paralel_branch_finder(self):
         components_frequency = {}
 
         for i, component_nodes in enumerate(self.components_nodes):
@@ -43,7 +61,7 @@ class Circuit:
 
         return [indices for indices in components_frequency.values() if len(indices) > 1]
 
-    def _serial_branch_finder(self):
+    def __serial_branch_finder(self):
         nodes_frequency = {}
         for component_nodes in self.components_nodes:
             for node in component_nodes:
@@ -74,7 +92,7 @@ class Circuit:
 
         return [list(group) for group in unified]
 
-    def _serial_sum(self, serial_components_set):
+    def __serial_sum(self, serial_components_set):
         components_to_delete = []
         for components in serial_components_set:
             sum_value = sum(self.components_values[component] for component in components)
@@ -88,7 +106,7 @@ class Circuit:
         self.components_values = [v for i, v in enumerate(self.components_values) if i not in components_to_delete]
         self.components_nodes = [n for i, n in enumerate(self.components_nodes) if i not in components_to_delete]
 
-    def _parallel_sum(self, parallel_components_set):
+    def __parallel_sum(self, parallel_components_set):
         components_to_delete = []
         for components in parallel_components_set:
             sum_value = sum(1 / self.components_values[component] for component in components)
@@ -99,59 +117,63 @@ class Circuit:
         self.components_nodes = [n for i, n in enumerate(self.components_nodes) if i not in components_to_delete]
 
     def get_circuit_matrix(self):
-        nodes = self.components_to_node()
         #print(nodes)
-        circuit_matrix_len = len(nodes)
-        circuit_matrix = np.zeros((circuit_matrix_len, circuit_matrix_len), dtype=complex)
-        in_nodes = []
+        circuit_matrix_len = len(self.nodes_matrix)
+        self.circuit_matrix = np.zeros((circuit_matrix_len, circuit_matrix_len), dtype=complex)
+        
         
         for j in range(circuit_matrix_len):
             for i in range(circuit_matrix_len):
                 if i == j:
                     acc = complex(0, 0)
-                    for component_name in nodes[j]:
+                    for component_name in self.nodes_matrix[j]:
                         if not isinstance(component_name, str):
                             acc += 1 / self.components_values[component_name]
-                    circuit_matrix[j, i] = acc
+                    self.circuit_matrix[j, i] = acc
 
-        for j, node in enumerate(nodes):
+        self.in_nodes = []
+        for j, node in enumerate(self.nodes_matrix):
             for component_name in node:
                 if isinstance(component_name, str):
-                    in_nodes.append(j)
+                    self.in_nodes.append(j)
                     continue
-                node_num = self._finder(j, component_name, nodes)
+                node_num = self.__finder(j, component_name, self.nodes_matrix)
                 if node_num > -1:
-                    circuit_matrix[j, node_num] = -1 / self.components_values[component_name]
+                    self.circuit_matrix[j, node_num] = -1 / self.components_values[component_name]
 
-        return circuit_matrix, in_nodes
+    def get_z_matrix(self) -> np.ndarray:
+        """
+        Calculate the Z matrix for a circuit.
 
-    def get_z_matrix(self):
-        z_matrix, in_nodes = self.get_circuit_matrix()
-        total_nodes = set(range(len(z_matrix)))
-        no_in_nodes = list(total_nodes - set(in_nodes))
+        Args:
+            component_values (dict): Dictionary of component values (e.g., resistors, capacitors).
+            nodes (np.ndarray): Matrix of nodes.
+
+        Returns:
+            np.ndarray: The Z matrix.
+        """
+        
+        total_nodes = set(range(len(self.circuit_matrix)))
+        no_in_nodes = list(total_nodes - set(self.in_nodes))
 
         while len(no_in_nodes) > 0:
-            z_matrix = self._matrix_reduction(z_matrix, no_in_nodes[0])
-            total_nodes = set(range(len(z_matrix)))
+            self.circuit_matrix = self.__matrix_reduction(self.circuit_matrix, no_in_nodes[0])
+            total_nodes = set(range(len(self.circuit_matrix)))
             no_in_nodes = [n - 1 for n in no_in_nodes[1:]]
 
-        return z_matrix
-
     def equivalent_circuit(self):
-        parallel_components_set = self._paralel_branch_finder()
-        serial_components_set = self._serial_branch_finder()
+        parallel_components_set = self.__paralel_branch_finder()
+        serial_components_set = self.__serial_branch_finder()
 
         while parallel_components_set or serial_components_set:
             if parallel_components_set:
-                self._parallel_sum(parallel_components_set)
-                parallel_components_set = self._paralel_branch_finder()
-                serial_components_set = self._serial_branch_finder()
+                self.__parallel_sum(parallel_components_set)
+                parallel_components_set = self.__paralel_branch_finder()
+                serial_components_set = self.__serial_branch_finder()
             if serial_components_set:
-                self._serial_sum(serial_components_set)
-                parallel_components_set = self._paralel_branch_finder()
-                serial_components_set = self._serial_branch_finder()
-
-        return self.components_nodes, self.components_values
+                self.__serial_sum(serial_components_set)
+                parallel_components_set = self.__paralel_branch_finder()
+                serial_components_set = self.__serial_branch_finder()
     
     def components_to_node(self):
 
@@ -161,9 +183,14 @@ class Circuit:
             if node_num in self.input_nodes:
                 node.append(f"In_{node_num}")
             nodes.append(node)
-        nodes = [node for node in nodes if node]
-
-        return nodes
+        self.nodes_matrix = [node for node in nodes if node]
+    
+    def run(self):
+        self.equivalent_circuit()
+        self.components_to_node()
+        self.get_circuit_matrix()
+        self.get_z_matrix()
+        
     
         
         
