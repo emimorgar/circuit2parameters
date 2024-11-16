@@ -23,7 +23,7 @@ class Circuit:
                 return i
         return -1
 
-    def __matrix_reduction(self, circuit_matrix, node) -> np.ndarray:
+    def __matrix_reduction(self) -> np.ndarray:
         """Reduce a circuit matrix by eliminating the row and column corresponding to the given node.
 
         Args:
@@ -33,6 +33,9 @@ class Circuit:
         Returns:
             np.ndarray: The reduced matrix.
         """
+        circuit_matrix = self.circuit_matrix
+        node = self.no_in_nodes
+        
         y, x = circuit_matrix.shape
         pivote_value = circuit_matrix[node, x - node]
         new_matrix = np.zeros((x - 1), dtype=complex)
@@ -47,7 +50,8 @@ class Circuit:
                 new_node = np.append(new_node, circuit_matrix[j, i] - circuit_matrix[node, i] * circuit_matrix[j, x - node] / pivote_value)
             new_matrix = np.vstack((new_matrix, new_node))
 
-        return new_matrix[1:]
+        self.circuit_matrix = new_matrix[1:]
+        self.no_in_nodes = node
 
     def __paralel_branch_finder(self):
         components_frequency = {}
@@ -154,12 +158,12 @@ class Circuit:
         """
         
         total_nodes = set(range(len(self.circuit_matrix)))
-        no_in_nodes = list(total_nodes - set(self.in_nodes))
+        self.no_in_nodes = list(total_nodes - set(self.in_nodes))
 
         while len(no_in_nodes) > 0:
-            self.circuit_matrix = self.__matrix_reduction(self.circuit_matrix, no_in_nodes[0])
+            self.__matrix_reduction()
             total_nodes = set(range(len(self.circuit_matrix)))
-            no_in_nodes = [n - 1 for n in no_in_nodes[1:]]
+            no_in_nodes = [n - 1 for n in self.no_in_nodes[1:]]
 
     def equivalent_circuit(self):
         parallel_components_set = self.__paralel_branch_finder()
