@@ -73,7 +73,7 @@ def matrix_reduction(circuit_matrix : np.ndarray, node : int) -> np.ndarray:
     (Y,X) = circuit_matrix.shape
 
     pivote = (node,X-node)
-    pivote_value = circuit_matrix[node][X-node]
+    pivote_value = circuit_matrix[node][node]
     
     new_matrix = np.zeros((X-1), dtype=complex)
     for j in range(Y):

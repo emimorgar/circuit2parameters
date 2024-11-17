@@ -34,12 +34,11 @@ class Circuit:
             np.ndarray: The reduced matrix.
         """
         circuit_matrix = self.circuit_matrix
-        node = self.no_in_nodes
-        
-        y, x = circuit_matrix.shape
-        pivote_value = circuit_matrix[node, x - node]
-        new_matrix = np.zeros((x - 1), dtype=complex)
+        node = self.no_in_nodes[0]
 
+        y, x = circuit_matrix.shape
+        pivote_value = circuit_matrix[node, node]
+        new_matrix = np.zeros((x - 1), dtype=complex)
         for j in range(y):
             if j == node:
                 continue
@@ -51,7 +50,6 @@ class Circuit:
             new_matrix = np.vstack((new_matrix, new_node))
 
         self.circuit_matrix = new_matrix[1:]
-        self.no_in_nodes = node
 
     def __paralel_branch_finder(self):
         components_frequency = {}
@@ -121,7 +119,7 @@ class Circuit:
         self.components_nodes = [n for i, n in enumerate(self.components_nodes) if i not in components_to_delete]
 
     def get_circuit_matrix(self):
-        #print(nodes)
+
         circuit_matrix_len = len(self.nodes_matrix)
         self.circuit_matrix = np.zeros((circuit_matrix_len, circuit_matrix_len), dtype=complex)
         
@@ -160,10 +158,9 @@ class Circuit:
         total_nodes = set(range(len(self.circuit_matrix)))
         self.no_in_nodes = list(total_nodes - set(self.in_nodes))
 
-        while len(no_in_nodes) > 0:
+        while len(self.no_in_nodes) > 0:
             self.__matrix_reduction()
-            total_nodes = set(range(len(self.circuit_matrix)))
-            no_in_nodes = [n - 1 for n in self.no_in_nodes[1:]]
+            self.no_in_nodes = [n - 1 for n in self.no_in_nodes[1:]]
 
     def equivalent_circuit(self):
         parallel_components_set = self.__paralel_branch_finder()
@@ -194,15 +191,17 @@ class Circuit:
         self.components_to_node()
         self.get_circuit_matrix()
         self.get_z_matrix()
+
+        print(self.circuit_matrix)
         
     
         
         
 # Ejemplo de uso
 if __name__ == "__main__":
-    np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
+    #np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
     
-    input_nodes = [5,0]
+    input_nodes = [100,5,0,1]
     components_values = [
         5000j,
         10000,
@@ -234,7 +233,5 @@ if __name__ == "__main__":
     #print("Component Nodes (Equivalent):", components_nodes_)
     #print("Component Values (Equivalent):", components_values_)
     
-    
-    z_matrix = circuit.get_z_matrix()
-    print("Matriz Z:", z_matrix)
-
+    circuit.run()
+ 
