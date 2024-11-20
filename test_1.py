@@ -9,16 +9,16 @@ def es_numero(valor):
     except ValueError:
         return False
 
-# Función para manejar la entrada de los datos generales
+# Función guarda la información general del circuito
 def submit_grl_info():
     global box_list
-    comp = nmb_comp.get()
-    i_freq = init_freq_entry.get()
-    f_freq = final_freq_entry.get()
-    s_freq = steps_freq_entry.get()
-    i_impedance = charac_imp_entry.get()
+    comp = nmb_comp.get()                    #guarda número de los componentes
+    i_freq = init_freq_entry.get()           #guarda la frecuencia inicial
+    f_freq = final_freq_entry.get()          #guarda la frecuencia final
+    s_freq = steps_freq_entry.get()          #guarda los pasos que se darán
+    i_impedance = charac_imp_entry.get()     #guarda eel valor de la impedancia característica
 
-    # Verificar si todos los campos están completos
+    # Verificar si todos los campos están completos, si no manda un error 
     if not (comp and i_freq and i_impedance and f_freq and s_freq):
         messagebox.showwarning("Error", "Campos incompletos")
         return
@@ -32,7 +32,7 @@ def submit_grl_info():
     component_reg_frame = tk.LabelFrame(frame, text="Registro de componentes")
     component_reg_frame.grid(row=1, column=0, sticky="news", padx=20, pady=20)
 
-    # Crear las etiquetas y cajas de texto para los componentes
+    # Crear las etiquetas y cajas de texto de acuerdo al número de componentes registrados 
     box_list = []  # Limpiar la lista de cajas antes de agregar nuevas
     for i in range(comp):
         label = tk.Label(component_reg_frame, text=f"Componente {i+1}:")
