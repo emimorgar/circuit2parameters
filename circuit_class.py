@@ -2,14 +2,31 @@ import numpy as np
 
 class Circuit:
     
-    def __init__(self, components_values: list, components_nodes: list, input_nodes: list):
-        self._components_values = components_values
-        self._components_nodes = [sorted(node) for node in components_nodes]
+    def __init__(self, components: list, input_nodes: list, lower_freq_limit: float, upper_freq_limit: float, freq_step: float):
+        self._components = components
         self._input_nodes = input_nodes
+        self._frecuency = lower_freq_limit
+        self._upper_freq_limit = upper_freq_limit
+        self._freq_step = freq_step
+        self._components_values = []
+        self._components_nodes = []
         self._nodes_matrix = []
         self._circuit_matrix = None
         self._no_in_nodes = None
         self._in_nodes = []
+
+    def impedance_calculator(self):
+        """Convert input components to components_values and components_nodes."""
+
+        for component in self._components:
+            type_, value, *nodes = component
+            if type_ == "R":
+                self._components_values.append(value)
+            elif type_ == "C":
+                self._components_values.append(-1j / (2 * np.pi * self._frecuency * value))
+            elif type_ == "L":
+                self._components_values.append(1j * 2 * np.pi * self._frecuency * value)
+            self._components_nodes.append(sorted(nodes))
 
     def equivalent_circuit(self):
         """Find the equivalent circuit for a circuit."""
@@ -166,11 +183,11 @@ class Circuit:
 
     def __matrix_reduction(self):
         """Reduce a circuit matrix by eliminating the row and column corresponding to the given node."""
-        circuit_matrix = self._circuit_matrix
+
         node = self._no_in_nodes[0]
 
-        y, x = circuit_matrix.shape
-        pivote_value = circuit_matrix[node, node]
+        y, x = self._circuit_matrix.shape
+        pivote_value = self._circuit_matrix[node, node]
         new_matrix = np.zeros((y - 1, x - 1), dtype=complex)
         new_row = 0
         for j in range(y):
@@ -180,61 +197,55 @@ class Circuit:
             for i in range(x):
                 if i == node:
                     continue
-                new_matrix[new_row, new_col] = circuit_matrix[j, i] - circuit_matrix[node, i] * circuit_matrix[j, node] / pivote_value
+                new_matrix[new_row, new_col] = (self._circuit_matrix[j, i] 
+                                                - self._circuit_matrix[node, i] 
+                                                * self._circuit_matrix[j, node] 
+                                                / pivote_value)
                 new_col += 1
             new_row += 1
 
         self._circuit_matrix = new_matrix
 
-    def run(self):
-        """Run the circuit analysis."""
+    def run_simulation(self):
+        """Run the circuit simulation."""
+        while self._frecuency <= self._upper_freq_limit:
+            self.impedance_calculator()
+            self.equivalent_circuit()
+            self.components_to_node()
+            self.get_circuit_matrix()
+            self.get_z_matrix()
+            print(f"Frequency: {self._frecuency} Hz")
+            print("Circuit Matrix:\n", self._circuit_matrix)
+            self._frecuency += self._freq_step
 
-        self.equivalent_circuit()
-        self.components_to_node()
-        self.get_circuit_matrix()
-        self.get_z_matrix()
-        
-    
-        
-        
 # Ejemplo de uso
 if __name__ == "__main__":
     
     input_nodes = [0,4,5]
-    components_values = [
-        5000j,
-        10000,
-        -.01j,
-        1000,
-        0.1,
-        -0.1j,
-        9800,
-        10j,
-        1500,
-        150,
-        100j,
-        1123,
-        -600j,
-        100j,
-        10000,
-        15
+
+    components = [
+        ["L", 0.00045, 0, 1],
+        ["R", 10000, 1, 2],
+        ["C", 0.01, 0],
+        ["R", 1000, 0, 3],
+        ["L", 0.001, 2, 3],
+        ["C", 0.0001, 2, 4],
+        ["R", 9800, 3, 4],
+        ["C", 0.01, 3, 4],
+        ["L", 0.01, 4],
+        ["R", 1500, 4],
+        ["R", 150, 4],
+        ["L", 1, 4, 5],
+        ["R", 1123, 5, 6],
+        ["C", 0.00007, 6, 7],
+        ["L", 0.1, 7, 4],
+        ["R", 10000, 7]
     ]
-    #components_values = [10,10,10,10,10,10,10,10,10]
-    #components_nodes = [[0,6],[6,2],[1,5],[4,2],[2,0],[3,5],[6,3],[1,4],[4,3]]
-    components_nodes = [[0,1],[1,2],[0],[0,3],[2,3],[2,4],[3,4],[3,4],[4],[4],[4],[4,5],[5,6],[6,7],[7,4],[7]]
-    
 
-    circuit = Circuit(components_values, components_nodes, input_nodes)
-    print("Component Nodes (Original):", circuit._components_nodes)
-    print("Component Values (Original):", circuit._components_values)
-    
-    #components_nodes_, components_values_ = circuit.equivalent_circuit()
-    #print("Component Nodes (Equivalent):", components_nodes_)
-    #print("Component Values (Equivalent):", components_values_)
-    
-    circuit.run()
+    lower_freq_limit = 1e3 
+    upper_freq_limit = 1e6  
+    freq_step = 1e3  
 
-    print("Component Nodes (Simplified): ", circuit._components_nodes)
-    print("Component Values (Simplified): ", circuit._components_values)
-
-    print("Circuit Matrix:\n", circuit._circuit_matrix)
+    circuit = Circuit(components, input_nodes, lower_freq_limit, upper_freq_limit, freq_step)
+    
+    circuit.run_simulation()
