@@ -14,6 +14,11 @@ class Circuit:
         self._circuit_matrix = None
         self._no_in_nodes = None
         self._in_nodes = []
+        self.z_matrix = None
+        self.y_matrix = None
+        self.abcd_matrix = None
+        self.s_matrix = None
+        self.z_charac = 50
 
     def impedance_calculator(self):
         """Convert input components to components_values and components_nodes."""
@@ -172,14 +177,16 @@ class Circuit:
         return -1
 
     def get_z_matrix(self):
-        """Calculate the Z matrix."""
+        """Calculate the Z matrix for a circuit."""
         
         total_nodes = set(range(len(self._circuit_matrix)))
-        self._no_in_nodes = list(total_nodes - set(self._in_nodes))
+        self._no_in_nodes = list(total_nodes - set(self._in_nodes)) 
 
         while len(self._no_in_nodes) > 0:
             self.__matrix_reduction()
             self._no_in_nodes = [n - 1 for n in self._no_in_nodes[1:]]
+        
+        self.z_matrix = self._circuit_matrix
 
     def __matrix_reduction(self):
         """Reduce a circuit matrix by eliminating the row and column corresponding to the given node."""
@@ -205,6 +212,29 @@ class Circuit:
             new_row += 1
 
         self._circuit_matrix = new_matrix
+    
+    def z2y(self):
+        """Convert Z matrix to Y matrix."""
+        self.y_matrix = np.linalg.inv(self.z_matrix)
+            
+    def z2abcd(self):
+        """Convert Z matrix to ABCD matrix."""
+        if len(self.z_matrix) == 2:
+            det_mat = np.linalg.det(self.z_matrix)
+            C = 1 / self.z_matrix[0][0]
+            D = self.z_matrix[1][1] / self.z_matrix[1][0]
+            A = self.z_matrix[0][0] / self.z_matrix[1][0]
+            B = det_mat / self.z_matrix[1][0]    
+            self.abcd_matrix = np.array([[A, B], [C, D]], dtype=complex)
+
+    def z2s(self):
+        """Convert Z matrix to S matrix."""
+        if len(self.z_matrix) == 2:
+            s_11 = ((self.z_matrix[0][0] - self.z_charac) * (self.z_matrix[1][1] + self.z_charac) - (self.z_matrix[0][1] * self.z_matrix[1][0])) / ((self.z_matrix[0][0] + self.z_charac) * (self.z_matrix[1][1] + self.z_charac) - (self.z_matrix[0][1] * self.z_matrix[1][0]))
+            s_12 = (2 * self.z_matrix[0][1] * self.z_charac) / ((self.z_matrix[0][0] + self.z_charac) * (self.z_matrix[1][1] + self.z_charac) - (self.z_matrix[0][1] * self.z_matrix[1][0]))
+            s_21 = (2 * self.z_matrix[1][0] * self.z_charac) / ((self.z_matrix[0][0] + self.z_charac) * (self.z_matrix[1][1] + self.z_charac) - (self.z_matrix[0][1] * self.z_matrix[1][0]))
+            s_22 = ((self.z_matrix[0][0] + self.z_charac) * (self.z_matrix[1][1] - self.z_charac) - (self.z_matrix[0][1] * self.z_matrix[1][0])) / ((self.z_matrix[0][0] + self.z_charac) * (self.z_matrix[1][1] + self.z_charac) - (self.z_matrix[0][1] * self.z_matrix[1][0]))
+            self.s_matrix = np.array([[s_11, s_12], [s_21, s_22]], dtype=complex)
 
     def run_simulation(self):
         """Run the circuit simulation."""
@@ -214,14 +244,19 @@ class Circuit:
             self.components_to_node()
             self.get_circuit_matrix()
             self.get_z_matrix()
+            self.z2y()
+            self.z2abcd()
+            self.z2s()
             print(f"Frequency: {self._frecuency} Hz")
-            print("Circuit Matrix:\n", self._circuit_matrix)
+            print("Z Matrix:\n", self.z_matrix)
+            print("Y Matrix:\n", self.y_matrix)
+            print("ABCD Matrix:\n", self.abcd_matrix)
+            print("S Matrix:\n", self.s_matrix)
             self._frecuency += self._freq_step
 
-# Ejemplo de uso
 if __name__ == "__main__":
     
-    input_nodes = [0,4,5]
+    input_nodes = [0,4,7]
 
     components = [
         ["L", 0.00045, 0, 1],
