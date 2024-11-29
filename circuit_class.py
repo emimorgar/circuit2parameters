@@ -176,7 +176,7 @@ class Circuit:
                 return i
         return -1
 
-    def get_z_matrix(self):
+    def get_y_matrix(self):
         """Calculate the Z matrix for a circuit."""
         
         total_nodes = set(range(len(self._circuit_matrix)))
@@ -186,7 +186,7 @@ class Circuit:
             self.__matrix_reduction()
             self._no_in_nodes = [n - 1 for n in self._no_in_nodes[1:]]
         
-        self.z_matrix = self._circuit_matrix
+        self.y_matrix = self._circuit_matrix
 
     def __matrix_reduction(self):
         """Reduce a circuit matrix by eliminating the row and column corresponding to the given node."""
@@ -213,13 +213,13 @@ class Circuit:
 
         self._circuit_matrix = new_matrix
     
-    def z2y(self):
+    def y2z(self):
         """Convert Z matrix to Y matrix."""
-        det = np.linalg.det(self.z_matrix)
+        det = np.linalg.det(self.y_matrix)
         if det:
-            self.y_matrix = np.linalg.inv(self.z_matrix)
+            self.z_matrix = np.linalg.inv(self.y_matrix)
         else:
-            self.y_matrix = None
+            self.z_matrix = None
 
     def z2abcd(self):
         """Convert Z matrix to ABCD matrix."""
@@ -256,10 +256,10 @@ class Circuit:
             self.equivalent_circuit()
             self.components_to_node()
             self.get_circuit_matrix()
-            self.get_z_matrix()
-            matrix["Z"] = self.z_matrix
-            self.z2y()
+            self.get_y_matrix()
             matrix["Y"] = self.y_matrix
+            self.y2z()
+            matrix["Z"] = self.z_matrix
             self.z2abcd()
             matrix["ABCD"] = self.abcd_matrix
             self.z2s()
@@ -296,6 +296,6 @@ if __name__ == "__main__":
     upper_freq_limit = 1e6  
     freq_step = 1e3  
 
-    circuit = Circuit(components, input_nodes, lower_freq_limit, upper_freq_limit, freq_step)
+    circuit = Circuit(components, input_nodes, lower_freq_limit, upper_freq_limit, freq_step, 50)
     
     circuit.run_simulation()
