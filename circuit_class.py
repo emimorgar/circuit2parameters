@@ -31,6 +31,15 @@ class Circuit:
                 self._components_values.append(-1j / (2 * np.pi * self._frecuency * value))
             elif type_ == "L":
                 self._components_values.append(1j * 2 * np.pi * self._frecuency * value)
+            elif type_ == "S":
+                relative_permitivity = 4.6 # Relative permitivity of the substrate FR4
+                Beta = 2 * np.pi * self._frecuency * np.sqrt(relative_permitivity)/ 3e8
+                self._components_values.append(1j * self._z_charac * np.tan(Beta * value))
+            elif type_ == "O":
+                relative_permitivity = 4.6 # Relative permitivity of the substrate FR4
+                Beta = 2 * np.pi * self._frecuency * np.sqrt(relative_permitivity)/ 3e8
+                self._components_values.append(-1j * self._z_charac / np.tan(Beta * value))
+                
             self._components_nodes.append(sorted(nodes))
 
     def equivalent_circuit(self):

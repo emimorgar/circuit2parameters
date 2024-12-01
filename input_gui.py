@@ -67,7 +67,7 @@ def save_comp_inf():
         partes = texto.split()
 
         # Verificar si la entrada tiene 4 partes
-        if partes[0] in ['R', 'L', 'C']:
+        if partes[0] in ['R', 'L', 'C', 'S', 'O', 'T']:
             if len(partes) == 4:
                 components_info.append([partes[0], float(partes[1]), int(partes[2]), int(partes[3])])
             elif len(partes) == 3:
